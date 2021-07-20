@@ -1,5 +1,6 @@
 package edu.cbet.json;
 
+import edu.cbet.json.annotations.JsonAsString;
 import edu.cbet.json.annotations.JsonIgnore;
 import edu.cbet.json.annotations.JsonProperty;
 
@@ -21,16 +22,17 @@ public class JsonDescription<T> implements JsonSerializer<T> {
         for(Field field: clazz.getDeclaredFields()) {
             if(!field.isAnnotationPresent(JsonIgnore.class) && !field.isSynthetic()) {
                 field.setAccessible(true);
+                boolean alwaysString = field.isAnnotationPresent(JsonAsString.class);
                 if(field.isAnnotationPresent(JsonProperty.class)) {
                     JsonProperty property = field.getAnnotation(JsonProperty.class);
 
                     if(property.value().isEmpty()) {
-                        this.fieldDescriptors.add(new FieldDescriptor<>(field.getName(), field));
+                        this.fieldDescriptors.add(new FieldDescriptor<>(field.getName(), field, alwaysString));
                     } else {
-                        this.fieldDescriptors.add(new FieldDescriptor<>(property.value(), field));
+                        this.fieldDescriptors.add(new FieldDescriptor<>(property.value(), field, alwaysString));
                     }
                 } else {
-                    this.fieldDescriptors.add(new FieldDescriptor<>(field.getName(), field));
+                    this.fieldDescriptors.add(new FieldDescriptor<>(field.getName(), field, alwaysString));
                 }
             }
         }
@@ -74,12 +76,18 @@ public class JsonDescription<T> implements JsonSerializer<T> {
     private static class FieldDescriptor<T> {
         private final String propertyName;
         private final Field field;
+        private final boolean alwaysString;
         private boolean active;
 
-        public FieldDescriptor(String propertyName, Field objField) {
+        public FieldDescriptor(String propertyName, Field objField, boolean alwaysString) {
             this.propertyName = propertyName;
+            this.alwaysString = alwaysString;
             this.field = objField;
             this.active = true;
+        }
+
+        public boolean isAlwaysString() {
+            return alwaysString;
         }
 
         public String getPropertyName() {
@@ -100,7 +108,13 @@ public class JsonDescription<T> implements JsonSerializer<T> {
 
         public Object getValue(T v) {
             try {
-                return field.get(v);
+                Object o = field.get(v);
+
+                if(o != null && isAlwaysString()) {
+                    return o.toString();
+                } else {
+                    return o;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;
