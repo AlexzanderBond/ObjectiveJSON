@@ -114,7 +114,7 @@ public class ObjectSerializer {
             if(notFirst)
                 builder.append(',');
 
-            builder.append(entry.getKey()).append(':').append(entry.getValue());
+            builder.append('\"').append(entry.getKey()).append('\"').append(':').append(entry.getValue());
             notFirst = true;
         }
 
