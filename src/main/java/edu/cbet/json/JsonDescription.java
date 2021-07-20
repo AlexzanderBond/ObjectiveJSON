@@ -5,6 +5,7 @@ import edu.cbet.json.annotations.JsonIgnore;
 import edu.cbet.json.annotations.JsonProperty;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -12,11 +13,9 @@ import java.util.List;
  * Default serializer which breaks down Classes to be serialized
  */
 public class JsonDescription<T> implements JsonSerializer<T> {
-    private final Class<T> clazz;
     private final List<FieldDescriptor<T>> fieldDescriptors;
 
     public JsonDescription(Class<T> clazz) {
-        this.clazz = clazz;
         this.fieldDescriptors = new LinkedList<>();
 
         for(Field field: clazz.getDeclaredFields()) {
@@ -39,31 +38,17 @@ public class JsonDescription<T> implements JsonSerializer<T> {
     }
 
     @Override
-    public String getSerializedValue(ObjectSerializer serializer, T v) {
-        StringBuilder builder = new StringBuilder();
-        boolean notFirst = false;
-
-        builder.append('{');
+    public HashMap<String, String> getSerializedValue(ObjectSerializer serializer, T v) {
+        HashMap<String, String> map = new HashMap<>();
 
         for(FieldDescriptor<T> descriptor: fieldDescriptors) {
             if(!descriptor.isActive())
                 continue;
 
-            if(notFirst)
-                builder.append(',');
-
-            builder.append('\"');
-            builder.append(descriptor.getPropertyName());
-            builder.append('\"');
-            builder.append(':');
-            builder.append(serializer.serializeValue(descriptor.getValue(v)));
-
-            notFirst = true;
+            map.put(descriptor.getPropertyName(), serializer.serializeValue(descriptor.getValue(v)));
         }
 
-        builder.append('}');
-
-        return builder.toString();
+        return map;
     }
 
     @Override
@@ -92,10 +77,6 @@ public class JsonDescription<T> implements JsonSerializer<T> {
 
         public String getPropertyName() {
             return propertyName;
-        }
-
-        public Field getField() {
-            return field;
         }
 
         public boolean isActive() {
