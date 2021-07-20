@@ -22,7 +22,7 @@ public class ObjectSerializer {
     private static final String NULL_VALUE = "null";
 
     private final HashMap<Class<?>, JsonSerializer<?>> serializers;
-    private final HashMap<Class<?>, List<Consumer<HashMap<String, String>>>> modifiers;
+    private final HashMap<Class<?>, List<Modifier<?>>> modifiers;
 
     public ObjectSerializer() {
         this.serializers = new HashMap<>();
@@ -33,9 +33,8 @@ public class ObjectSerializer {
         getSerializer(clazz).addFilter(filter);
     }
 
-    public <T> void addModifier(Class<T> clazz, Consumer<HashMap<String, String>> consumer) {
-        List<Consumer<HashMap<String, String>>> modList = modifiers.computeIfAbsent(clazz, k -> new LinkedList<>());
-
+    public <T> void addModifier(Class<T> clazz, Modifier<T> consumer) {
+        List<Modifier<?>> modList = modifiers.computeIfAbsent(clazz, k -> new LinkedList<>());
         modList.add(consumer);
     }
 
@@ -92,12 +91,12 @@ public class ObjectSerializer {
         } else {
             HashMap<String, String> map = getSerializer((Class<T>)value.getClass()).getSerializedValue(this, value);
 
-            List<Consumer<HashMap<String, String>>> modList = modifiers.get(value.getClass());
+            List<Modifier<?>> modList = modifiers.get(value.getClass());
 
             if(modList != null) {
-                for(Consumer<HashMap<String, String>> modifier: modList) {
+                for(Modifier<?> modifier: modList) {
                     try { //A modifier could disrupt all serialization if the exceptions aren't caught
-                        modifier.accept(map);
+                        ((Modifier<T>)modifier).modify(value, map);
                     } catch (Exception ignore) {}
                 }
             }
