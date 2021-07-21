@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.function.Consumer;
 
 /**
  * The object responsible for actually serializing java objects
@@ -23,14 +22,12 @@ public class ObjectSerializer {
 
     private final HashMap<Class<?>, JsonSerializer<?>> serializers;
     private final HashMap<Class<?>, List<Modifier<?>>> modifiers;
+    private final HashMap<Class<?>, List<Filter>> filters;
 
     public ObjectSerializer() {
         this.serializers = new HashMap<>();
         this.modifiers = new HashMap<>();
-    }
-
-    public void addFilter(Class<?> clazz, Filter filter) {
-        getSerializer(clazz).addFilter(filter);
+        this.filters = new HashMap<>();
     }
 
     public <T> void addModifier(Class<T> clazz, Modifier<T> consumer) {
@@ -42,7 +39,19 @@ public class ObjectSerializer {
         this.serializers.put(clazz, serializer);
     }
 
+    public void addFilter(Class<?> clazz, Filter filter) {
+        List<Filter> fList = this.filters.computeIfAbsent(clazz, k -> new LinkedList<>());
+        fList.add(filter);
+
+        getSerializer(clazz).addFilter(filter);
+    }
+
     public void removeFilters(Class<?> clazz) {
+        List<Filter> fList = this.filters.get(clazz);
+
+        if(fList != null)
+            fList.clear();
+
         getSerializer(clazz).addFilter(Filter.ANY);
     }
 
@@ -101,21 +110,39 @@ public class ObjectSerializer {
                 }
             }
 
-            return toJSONObjectString(map);
+            return toJSONObjectString(value.getClass(), map);
         }
     }
 
-    private String toJSONObjectString(HashMap<String, String> map) {
+    private String toJSONObjectString(Class<?> clazz, HashMap<String, String> map) {
         StringBuilder builder = new StringBuilder();
+        List<Filter> fList = this.filters.get(clazz);
         boolean notFirst = false;
 
         builder.append('{');
-        for(Map.Entry<String, String> entry: map.entrySet()) {
-            if(notFirst)
-                builder.append(',');
+        if(fList != null) {
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                boolean notFiltered = true;
 
-            builder.append('\"').append(entry.getKey()).append('\"').append(':').append(entry.getValue());
-            notFirst = true;
+                for(Filter filter: fList)
+                    notFiltered &= filter.allowProperty(entry.getKey());
+
+                if(notFiltered) {
+                    if (notFirst)
+                        builder.append(',');
+
+                    builder.append('\"').append(entry.getKey()).append('\"').append(':').append(entry.getValue());
+                    notFirst = true;
+                }
+            }
+        } else {
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                if (notFirst)
+                    builder.append(',');
+
+                builder.append('\"').append(entry.getKey()).append('\"').append(':').append(entry.getValue());
+                notFirst = true;
+            }
         }
 
         builder.append('}');
