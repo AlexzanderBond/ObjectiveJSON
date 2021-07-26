@@ -94,6 +94,11 @@ public class ObjectSerializer {
 
             return builder.toString();
         } else if(PRIMITIVE_NO_QUOTES.contains(value.getClass())) {
+            if(value instanceof Double && ((Double) value).isNaN()) {
+                return "\"NaN\"";
+            } else if(value instanceof Float && ((Float) value).isNaN()) {
+                return "\"NaN\"";
+            }
             return value.toString();
         } else if(PRIMITIVE_QUOTES.contains(value.getClass())) {
             return '\"' + value.toString() + '\"';
