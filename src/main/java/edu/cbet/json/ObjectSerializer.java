@@ -75,6 +75,18 @@ public class ObjectSerializer {
             builder.append(']');
 
             return builder.toString();
+        } else if(value instanceof Map<?, ?> map) {
+
+            StringBuilder builder = new StringBuilder();
+
+            builder.append('{');
+            for(Map.Entry<?, ?> entry: map.entrySet()) {
+                builder.append('\"').append(entry.getKey()).append('\"')
+                .append(':').append(this.serializeValue(entry.getValue()));
+            }
+            builder.append('}');
+
+            return builder.toString();
         } else if(value.getClass().isArray()) {
             int len = Array.getLength(value);
             StringBuilder builder = new StringBuilder();
