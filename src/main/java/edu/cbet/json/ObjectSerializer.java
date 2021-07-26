@@ -76,13 +76,18 @@ public class ObjectSerializer {
 
             return builder.toString();
         } else if(value instanceof Map<?, ?> map) {
-
             StringBuilder builder = new StringBuilder();
+            boolean notFirst = false;
 
             builder.append('{');
             for(Map.Entry<?, ?> entry: map.entrySet()) {
+                if(notFirst)
+                    builder.append(',');
+
                 builder.append('\"').append(entry.getKey()).append('\"')
                 .append(':').append(this.serializeValue(entry.getValue()));
+
+                notFirst = true;
             }
             builder.append('}');
 
