@@ -94,10 +94,18 @@ public class ObjectSerializer {
 
             return builder.toString();
         } else if(PRIMITIVE_NO_QUOTES.contains(value.getClass())) {
-            if(value instanceof Double && ((Double) value).isNaN()) {
-                return "\"NaN\"";
-            } else if(value instanceof Float && ((Float) value).isNaN()) {
-                return "\"NaN\"";
+            if(value instanceof Double dValue) {
+                if(dValue.isNaN()) {
+                    return "\"NaN\"";
+                } else if(dValue.isInfinite()) {
+                    return '\"' + dValue.toString() + '\"';
+                }
+            } else if(value instanceof Float fValue) {
+                if(fValue.isNaN()) {
+                    return "\"NaN\"";
+                } else if(fValue.isInfinite()) {
+                    return '\"' + fValue.toString() + '\"';
+                }
             }
             return value.toString();
         } else if(PRIMITIVE_QUOTES.contains(value.getClass())) {
