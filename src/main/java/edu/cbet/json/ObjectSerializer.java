@@ -15,7 +15,7 @@ public class ObjectSerializer {
 
     static {
         PRIMITIVE_NO_QUOTES.addAll(List.of(long.class, Long.class, int.class, Integer.class, short.class, Short.class, byte.class, Byte.class, double.class, Double.class, float.class, Float.class, boolean.class, Boolean.class));
-        PRIMITIVE_QUOTES.addAll(List.of(char.class, Character.class, String.class));
+        PRIMITIVE_QUOTES.addAll(List.of(char.class, Character.class));
     }
 
     private static final String NULL_VALUE = "null";
@@ -60,7 +60,9 @@ public class ObjectSerializer {
         if(value == null)
             return NULL_VALUE;
 
-        if(value instanceof Collection<?>) {
+        if(value instanceof String) {
+            return fixString((String) value);
+        } else if(value instanceof Collection<?>) {
             boolean notFirst = false;
             StringBuilder builder = new StringBuilder();
             builder.append('[');
@@ -84,7 +86,7 @@ public class ObjectSerializer {
                 if(notFirst)
                     builder.append(',');
 
-                builder.append('\"').append(entry.getKey()).append('\"')
+                builder.append(fixString(Objects.toString(entry.getKey())))
                 .append(':').append(this.serializeValue(entry.getValue()));
 
                 notFirst = true;
@@ -193,4 +195,30 @@ public class ObjectSerializer {
         return serializer;
     }
 
+    private static String fixString(String str) {
+        StringBuilder stringBuilder = new StringBuilder(str.length()+2);
+
+        stringBuilder.append('\"');
+
+        if(str.indexOf('\"') > -1) {
+            for(int x = 0; x < str.length(); x++) {
+                char c = str.charAt(x);
+                if(c == '\"') {
+                    if(x == 0 || str.charAt(x-1) != '\\') {
+                        stringBuilder.append("\\\"");
+                    } else {
+                        stringBuilder.append('\"');
+                    }
+                } else {
+                    stringBuilder.append(c);
+                }
+            }
+        } else {
+            stringBuilder.append(str);
+        }
+
+        stringBuilder.append('\"');
+
+        return stringBuilder.toString();
+    }
 }
