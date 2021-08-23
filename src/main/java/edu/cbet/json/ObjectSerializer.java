@@ -129,6 +129,8 @@ public class ObjectSerializer {
             return value.toString();
         } else if(PRIMITIVE_QUOTES.contains(value.getClass())) {
             return '\"' + value.toString() + '\"';
+        } else if(value.getClass().isEnum()) {
+            return '\"' + ((Enum<?>) value).name() + '\"';
         } else {
             HashMap<String, String> map = getSerializer((Class<T>)value.getClass()).getSerializedValue(this, value);
 
