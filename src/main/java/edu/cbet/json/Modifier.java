@@ -1,7 +1,8 @@
 package edu.cbet.json;
 
-import java.util.HashMap;
+
+import java.util.Map;
 
 public interface Modifier<T> {
-    void modify(T value, HashMap<String, String> map);
+    void modify(T value, Map<String, Object> map);
 }
