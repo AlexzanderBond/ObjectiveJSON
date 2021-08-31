@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Default serializer which breaks down Classes to be serialized
@@ -38,14 +39,14 @@ public class JsonDescription<T> implements JsonSerializer<T> {
     }
 
     @Override
-    public HashMap<String, String> getSerializedValue(ObjectSerializer serializer, T v) {
-        HashMap<String, String> map = new HashMap<>();
+    public Map<String, Object> getSerializedValue(ObjectSerializer serializer, T v) {
+        HashMap<String, Object> map = new HashMap<>();
 
         for(FieldDescriptor<T> descriptor: fieldDescriptors) {
             if(!descriptor.isActive())
                 continue;
 
-            map.put(descriptor.getPropertyName(), serializer.serializeValue(descriptor.getValue(v)));
+            map.put(descriptor.getPropertyName(), descriptor.getValue(v));
         }
 
         return map;

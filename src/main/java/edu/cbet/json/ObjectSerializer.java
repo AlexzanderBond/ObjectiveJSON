@@ -43,7 +43,7 @@ public class ObjectSerializer {
         List<Filter> fList = this.filters.computeIfAbsent(clazz, k -> new LinkedList<>());
         fList.add(filter);
 
-        getSerializer(clazz).addFilter(filter);
+        this.getSerializer(clazz).addFilter(filter);
     }
 
     public void removeFilters(Class<?> clazz) {
@@ -52,33 +52,34 @@ public class ObjectSerializer {
         if(fList != null)
             fList.clear();
 
-        getSerializer(clazz).addFilter(Filter.ANY);
+        this.getSerializer(clazz).addFilter(Filter.ANY);
     }
 
     @NotNull
     public <T> String serializeValue(T value) {
-        if(value == null)
-            return NULL_VALUE;
+        StringBuilder builder = new StringBuilder();
+        return this.serializeValue0(builder, value).toString();
+    }
 
-        if(value instanceof String) {
-            return fixString((String) value);
+    @NotNull
+    public <T> StringBuilder serializeValue0(StringBuilder builder, T value) {
+        if(value == null) {
+            builder.append(NULL_VALUE);
+        } else if(value instanceof CharSequence cs) {
+            appendFixedString(builder, cs);
         } else if(value instanceof Collection<?>) {
             boolean notFirst = false;
-            StringBuilder builder = new StringBuilder();
             builder.append('[');
 
             for(Object o: (Collection<?>)value) {
                 if(notFirst)
                     builder.append(',');
 
-                builder.append(serializeValue(o));
+                this.serializeValue0(builder, o);
                 notFirst = true;
             }
             builder.append(']');
-
-            return builder.toString();
         } else if(value instanceof Map<?, ?> map) {
-            StringBuilder builder = new StringBuilder();
             boolean notFirst = false;
 
             builder.append('{');
@@ -86,17 +87,16 @@ public class ObjectSerializer {
                 if(notFirst)
                     builder.append(',');
 
-                builder.append(fixString(Objects.toString(entry.getKey())))
-                .append(':').append(this.serializeValue(entry.getValue()));
+                appendFixedString(builder, Objects.toString(entry.getKey()));
+                builder.append(':');
+
+                this.serializeValue0(builder, entry.getValue());
 
                 notFirst = true;
             }
             builder.append('}');
-
-            return builder.toString();
         } else if(value.getClass().isArray()) {
             int len = Array.getLength(value);
-            StringBuilder builder = new StringBuilder();
 
             builder.append('[');
 
@@ -106,33 +106,31 @@ public class ObjectSerializer {
 
                 Object o = Array.get(value, x);
 
-                builder.append(serializeValue(o));
+                this.serializeValue0(builder, o);
             }
 
             builder.append(']');
-
-            return builder.toString();
         } else if(PRIMITIVE_NO_QUOTES.contains(value.getClass())) {
             if(value instanceof Double dValue) {
                 if(dValue.isNaN()) {
-                    return "\"NaN\"";
+                    builder.append("\"NaN\"");
                 } else if(dValue.isInfinite()) {
-                    return '\"' + dValue.toString() + '\"';
+                    builder.append('\"').append(dValue).append( '\"');
                 }
             } else if(value instanceof Float fValue) {
                 if(fValue.isNaN()) {
-                    return "\"NaN\"";
+                    builder.append("\"NaN\"");
                 } else if(fValue.isInfinite()) {
-                    return '\"' + fValue.toString() + '\"';
+                    builder.append('\"').append(fValue).append( '\"');
                 }
             }
-            return value.toString();
+            builder.append(value);
         } else if(PRIMITIVE_QUOTES.contains(value.getClass())) {
-            return '\"' + value.toString() + '\"';
+            builder.append('\"').append(value).append('\"');
         } else if(value instanceof Enum<?> ev) {
-            return '\"' + ev.name() + '\"';
+            builder.append('\"').append(ev.name()).append('\"');
         } else {
-            HashMap<String, String> map = getSerializer((Class<T>)value.getClass()).getSerializedValue(this, value);
+            Map<String, Object> map = getSerializer((Class<T>)value.getClass()).getSerializedValue(this, value);
 
             List<Modifier<?>> modList = modifiers.get(value.getClass());
 
@@ -144,18 +142,19 @@ public class ObjectSerializer {
                 }
             }
 
-            return toJSONObjectString(value.getClass(), map);
+            this.toJSONObjectString(value.getClass(), builder, map);
         }
+
+        return builder;
     }
 
-    private String toJSONObjectString(Class<?> clazz, HashMap<String, String> map) {
-        StringBuilder builder = new StringBuilder();
+    private void toJSONObjectString(Class<?> clazz, StringBuilder builder, Map<String, Object> map) {
         List<Filter> fList = this.filters.get(clazz);
         boolean notFirst = false;
 
         builder.append('{');
         if(fList != null) {
-            for (Map.Entry<String, String> entry : map.entrySet()) {
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
                 boolean notFiltered = true;
 
                 for(Filter filter: fList)
@@ -165,23 +164,23 @@ public class ObjectSerializer {
                     if (notFirst)
                         builder.append(',');
 
-                    builder.append('\"').append(entry.getKey()).append('\"').append(':').append(entry.getValue());
+                    builder.append('\"').append(entry.getKey()).append('\"').append(':');
+                    this.serializeValue0(builder, entry.getValue());
                     notFirst = true;
                 }
             }
         } else {
-            for (Map.Entry<String, String> entry : map.entrySet()) {
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
                 if (notFirst)
                     builder.append(',');
 
-                builder.append('\"').append(entry.getKey()).append('\"').append(':').append(entry.getValue());
+                builder.append('\"').append(entry.getKey()).append('\"').append(':');
+                this.serializeValue0(builder, entry.getValue());
                 notFirst = true;
             }
         }
 
         builder.append('}');
-
-        return builder.toString();
     }
 
     @NotNull
@@ -197,30 +196,24 @@ public class ObjectSerializer {
         return serializer;
     }
 
-    private static String fixString(String str) {
-        StringBuilder stringBuilder = new StringBuilder(str.length()+2);
+    private static void appendFixedString(StringBuilder stringBuilder, CharSequence str) {
+        stringBuilder.ensureCapacity(stringBuilder.length() + str.length()+2);
 
         stringBuilder.append('\"');
 
-        if(str.indexOf('\"') > -1) {
-            for(int x = 0; x < str.length(); x++) {
-                char c = str.charAt(x);
-                if(c == '\"') {
-                    if(x == 0 || str.charAt(x-1) != '\\') {
-                        stringBuilder.append("\\\"");
-                    } else {
-                        stringBuilder.append('\"');
-                    }
+        for(int x = 0; x < str.length(); x++) {
+            char c = str.charAt(x);
+            if(c == '\"') {
+                if(x == 0 || str.charAt(x-1) != '\\') {
+                    stringBuilder.append("\\\"");
                 } else {
-                    stringBuilder.append(c);
+                    stringBuilder.append('\"');
                 }
+            } else {
+                stringBuilder.append(c);
             }
-        } else {
-            stringBuilder.append(str);
         }
 
         stringBuilder.append('\"');
-
-        return stringBuilder.toString();
     }
 }
