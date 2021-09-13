@@ -13,7 +13,9 @@ import java.util.Stack;
 
 public class JsonParser {
     public static void main(String[] args) {
-        System.out.println(new JsonParser().parseJson("[\"\\u20AC\"]"));
+        JsonValue value = new JsonParser().parseJson("[\"\\uD801\\uDC37\"]");
+        System.out.println(value.getAsArray().get(0));
+        System.out.println(Arrays.toString(value.getAsArray().getString(0).getBytes(StandardCharsets.UTF_8)));
     }
 
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 4; //4096 bytes
@@ -136,8 +138,6 @@ public class JsonParser {
 
                                     char v = (char) Integer.parseInt(new BufferSequence(uni, 0, 4), 0, 4, 16);
 
-                                    System.out.println(Integer.toString(v));
-
                                     if (bytes[x] == '\\' && bytes[x + 1] == 'u') {
                                         x+=2;
 
@@ -153,15 +153,13 @@ public class JsonParser {
 
                                         char v1 = (char) Integer.parseInt(new BufferSequence(uni, 0, 4), 0, 4, 16);
 
-                                        System.out.println(Integer.toString(v1));
-
-                                        byte[] bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(2).append(v).append(v1)).array();
+                                        byte[] bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(2).append(v).append(v1).flip()).array();
 
                                         for (byte b1 : bytes1) {
                                             textBuffer[strLen++] = b1;
                                         }
                                     } else {
-                                        byte[] bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(1).append(v)).array();
+                                        byte[] bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(1).append(v).flip()).array();
 
                                         for (byte b1 : bytes1) {
                                             textBuffer[strLen++] = b1;
