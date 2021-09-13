@@ -6,25 +6,25 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Stack;
 
 public class JsonParser {
     public static void main(String[] args) {
-        JsonValue value = new JsonParser().parseJson("[\"\\uD801\\uDC37\"]");
-        System.out.println(value.getAsArray().get(0));
-        System.out.println(Arrays.toString(value.getAsArray().getString(0).getBytes(StandardCharsets.UTF_8)));
+        JsonValue value = new JsonParser().parseJson("[\"\\u0035\"]");
+        System.out.println(value.getAsArray());
     }
 
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 4; //4096 bytes
     public static final byte[] TRUE_BYTES = {'t', 'r', 'u', 'e'};
     public static final byte[] FALSE_BYTES = {'f', 'a', 'l', 's', 'e'};
     public static final byte[] NULL_BYTES = {'n', 'u', 'l', 'l'};
-
-    private byte[] readBuffer;
-    private final byte[] textBuffer;
+    private byte[] textBuffer;
+    private int strLen;
 
     public JsonParser() {
         this(DEFAULT_BUFFER_SIZE);
@@ -65,7 +65,7 @@ public class JsonParser {
     private JsonValue parse(ByteContainer container) throws IOException {
         byte[] bytes = container.getBytes();
         boolean isInString = false;
-        int strLen = 0;
+        strLen = 0;
 
         Stack<Pair<String, JsonValue>> valueStack = new Stack<>();
 
@@ -105,21 +105,21 @@ public class JsonParser {
                             byte n = bytes[++x];
 
                             if(n == 'n') {
-                                textBuffer[strLen++] = '\n';
+                                _textChar((byte) '\n');
                             } else if(n == 't') {
-                                textBuffer[strLen++] = '\t';
+                                _textChar((byte) '\t');
                             } else if(n == 'r') {
-                                textBuffer[strLen++] = '\r';
+                                _textChar((byte) '\r');
                             } else if(n == 'b') {
-                                textBuffer[strLen++] = '\b';
+                                _textChar((byte) '\b');
                             } else if(n == '0') {
-                                textBuffer[strLen++] = '\0';
+                                _textChar((byte) '\0');
                             } else if(n == '\\') {
-                                textBuffer[strLen++] = '\\';
+                                _textChar((byte) '\\');
                             } else if(n == '\"') {
-                                textBuffer[strLen++] = '\"';
+                                _textChar((byte) '\"');
                             } else if(n == '\'') {
-                                textBuffer[strLen++] = '\'';
+                                _textChar((byte) '\'');
                             } else if(n == 'u') {
                                 try {
                                     byte[] uni = new byte[4];
@@ -138,8 +138,8 @@ public class JsonParser {
 
                                     char v = (char) Integer.parseInt(new BufferSequence(uni, 0, 4), 0, 4, 16);
 
-                                    if (bytes[x] == '\\' && bytes[x + 1] == 'u') {
-                                        x+=2;
+                                    if (bytes[x + 1] == '\\' && bytes[x + 2] == 'u') {
+                                        x+=2; //Move to the 'u' so that the next 4 bytes can be read
 
                                         for(int i = 0; i < 4; i++) {
                                             if(i == read) {
@@ -148,21 +148,21 @@ public class JsonParser {
                                                     throw new IllegalArgumentException("Unicode character literal started but never finished at index " + x + ", json preview " + getSurroundingSection(bytes, x));
                                                 x = 0;
                                             }
-                                            uni[i] = bytes[x++];
+                                            uni[i] = bytes[++x];
                                         }
 
                                         char v1 = (char) Integer.parseInt(new BufferSequence(uni, 0, 4), 0, 4, 16);
 
-                                        byte[] bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(2).append(v).append(v1).flip()).array();
+                                        ByteBuffer bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(2).append(v).append(v1).flip());
 
-                                        for (byte b1 : bytes1) {
-                                            textBuffer[strLen++] = b1;
+                                        for (int i = 0; i < bytes1.limit(); i++) {
+                                            _textChar(bytes1.get());
                                         }
                                     } else {
-                                        byte[] bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(1).append(v).flip()).array();
+                                        ByteBuffer bytes1 = StandardCharsets.UTF_8.encode(CharBuffer.allocate(1).append(v).flip());
 
-                                        for (byte b1 : bytes1) {
-                                            textBuffer[strLen++] = b1;
+                                        for (int i = 0; i < bytes1.limit(); i++) {
+                                            _textChar(bytes1.get());
                                         }
                                     }
                                 } catch (NumberFormatException e) {
@@ -173,7 +173,7 @@ public class JsonParser {
                             }
                         }
                     } else {
-                        textBuffer[strLen++] = b;
+                        _textChar(b);
                     }
                 } else if (b != 0 && !Character.isWhitespace(b)) {
                     if (b == '\"') {
@@ -288,7 +288,7 @@ public class JsonParser {
 
                         value = null;
                     } else {
-                        textBuffer[strLen++] = b;
+                        _textChar(b);
                     }
                 } else if (strLen != 0) {
                     if (value == null) {
@@ -310,6 +310,14 @@ public class JsonParser {
         } else {
             return current.getRight();
         }
+    }
+
+    private void _textChar(byte b) {
+        if(strLen == textBuffer.length) {
+            this.textBuffer = Arrays.copyOf(this.textBuffer, this.textBuffer.length << 1);
+        }
+
+        this.textBuffer[strLen++] = b;
     }
 
     private JsonValue parseValue(int strLen, byte[] buffer, int index) {
