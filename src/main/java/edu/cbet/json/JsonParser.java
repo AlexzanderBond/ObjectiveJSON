@@ -4,21 +4,18 @@ import edu.cbet.json.impl.BufferSequence;
 import edu.cbet.json.impl.Pair;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Stack;
 
 public class JsonParser {
-    public static void main(String[] args) {
-        JsonValue value = new JsonParser().parseJson("[\"\\u0035\"]");
-        System.out.println(value.getAsArray());
-    }
-
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 4; //4096 bytes
     public static final byte[] TRUE_BYTES = {'t', 'r', 'u', 'e'};
     public static final byte[] FALSE_BYTES = {'f', 'a', 'l', 's', 'e'};
