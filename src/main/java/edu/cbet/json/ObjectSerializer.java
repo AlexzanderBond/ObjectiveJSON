@@ -129,58 +129,89 @@ public class ObjectSerializer {
             builder.append('\"').append(value).append('\"');
         } else if(value instanceof Enum<?> ev) {
             builder.append('\"').append(ev.name()).append('\"');
+        } else if(value instanceof JsonValue v) {
+            toJsonValueString(null, builder, v);
         } else {
-            Map<String, Object> map = getSerializer((Class<T>)value.getClass()).getSerializedValue(this, value);
+            JsonValue obj = getSerializer((Class<T>)value.getClass()).getSerializedValue(this, value);
 
             List<Modifier<?>> modList = modifiers.get(value.getClass());
 
             if(modList != null) {
                 for(Modifier<?> modifier: modList) {
                     try { //A modifier could disrupt all serialization if the exceptions aren't caught
-                        ((Modifier<T>)modifier).modify(value, map);
+                        ((Modifier<T>)modifier).modify(value, obj);
                     } catch (Exception ignore) {}
                 }
             }
 
-            this.toJSONObjectString(value.getClass(), builder, map);
+            this.toJsonValueString(value.getClass(), builder, obj);
         }
 
         return builder;
     }
 
-    private void toJSONObjectString(Class<?> clazz, StringBuilder builder, Map<String, Object> map) {
+    private void toJsonValueString(Class<?> clazz, StringBuilder builder, JsonValue value) {
         List<Filter> fList = this.filters.get(clazz);
-        boolean notFirst = false;
 
-        builder.append('{');
-        if(fList != null) {
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                boolean notFiltered = true;
+        if(value.isObject()) {
+            boolean notFirst = false;
+            JsonObject obj = value.getAsObject();
+            builder.append('{');
+            if(fList != null) {
+                for (Map.Entry<String, JsonValue> entry : obj.entrySet()) {
+                    boolean notFiltered = true;
 
-                for(Filter filter: fList)
-                    notFiltered &= filter.allowProperty(entry.getKey());
+                    for(Filter filter: fList)
+                        notFiltered &= filter.allowProperty(entry.getKey());
 
-                if(notFiltered) {
+                    if(notFiltered) {
+                        if (notFirst)
+                            builder.append(',');
+
+                        builder.append('\"').append(entry.getKey()).append('\"').append(':');
+                        toJsonValueString(null, builder, entry.getValue());
+                        notFirst = true;
+                    }
+                }
+            } else {
+                for (Map.Entry<String, JsonValue> entry : obj.entrySet()) {
                     if (notFirst)
                         builder.append(',');
 
                     builder.append('\"').append(entry.getKey()).append('\"').append(':');
-                    this.serializeValue0(builder, entry.getValue());
+                    toJsonValueString(null, builder, entry.getValue());
                     notFirst = true;
                 }
             }
-        } else {
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                if (notFirst)
+
+            builder.append('}');
+        } else if(value.isArray()) {
+            boolean notFirst = false;
+            builder.append('[');
+
+            for(JsonValue o: value.getAsArray()) {
+                if(notFirst)
                     builder.append(',');
 
-                builder.append('\"').append(entry.getKey()).append('\"').append(':');
-                this.serializeValue0(builder, entry.getValue());
+                toJsonValueString(null, builder, o);
                 notFirst = true;
             }
+            builder.append(']');
+        } else if(value.isString()) {
+            appendFixedString(builder, value.getAsString());
+        } else if(value.isNumber()) {
+            builder.append(value.getAsNumber());
+        } else if(value.isBoolean()) {
+            builder.append(value.getAsBoolean());
+        } else if(value.isNull()) {
+            builder.append("null");
+        } else {
+            builder.append(value);
         }
+    }
 
-        builder.append('}');
+    public <T> JsonValue fromObject(T obj) {
+        return ((JsonSerializer<T>)getSerializer(obj.getClass())).getSerializedValue(this, obj);
     }
 
     @NotNull
@@ -209,6 +240,12 @@ public class ObjectSerializer {
                 } else {
                     stringBuilder.append('\"');
                 }
+            } else if(c == '\n') {
+                stringBuilder.append("\\n");
+            } else if (c == '\r') {
+                stringBuilder.append("\\r");
+            } else if(c == '\t') {
+                stringBuilder.append("\\t");
             } else {
                 stringBuilder.append(c);
             }

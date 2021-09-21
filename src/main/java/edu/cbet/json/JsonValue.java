@@ -64,6 +64,10 @@ public interface JsonValue {
         throw new IllegalStateException("JsonValue is of type '%s' not a float".formatted(getType()));
     }
 
+    default Number getAsNumber() {
+        throw new IllegalStateException("JsonValue is of type '%s' not a number".formatted(getType()));
+    }
+
     default String getAsString() {
         throw new IllegalStateException("JsonValue is of type '%s' not a String".formatted(getType()));
     }

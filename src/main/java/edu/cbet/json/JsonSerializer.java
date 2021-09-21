@@ -7,6 +7,6 @@ import java.util.Map;
  * @param <T> the type to serialize
  */
 public interface JsonSerializer<T> {
-    Map<String, Object> getSerializedValue(ObjectSerializer serializer, T v);
+    JsonValue getSerializedValue(ObjectSerializer serializer, T v);
     void addFilter(Filter filter);
 }

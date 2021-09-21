@@ -5,10 +5,7 @@ import edu.cbet.json.annotations.JsonIgnore;
 import edu.cbet.json.annotations.JsonProperty;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Default serializer which breaks down Classes to be serialized
@@ -39,17 +36,38 @@ public class JsonDescription<T> implements JsonSerializer<T> {
     }
 
     @Override
-    public Map<String, Object> getSerializedValue(ObjectSerializer serializer, T v) {
-        HashMap<String, Object> map = new HashMap<>();
+    public JsonValue getSerializedValue(ObjectSerializer serializer, T v) {
+        JsonObject map = new JsonObject();
 
         for(FieldDescriptor<T> descriptor: fieldDescriptors) {
             if(!descriptor.isActive())
                 continue;
 
-            map.put(descriptor.getPropertyName(), descriptor.getValue(v));
+            Object value = descriptor.getValue(v);
+            JsonValue jv = JsonNull.NULL;
+
+            if(value instanceof JsonValue tjv)
+                jv = tjv;
+            else if(value instanceof String str)
+                jv = JsonString.valueOf(str);
+            else if(value instanceof Number n)
+                jv = JsonNumber.valueOf(n);
+            else if(value instanceof Boolean b)
+                jv = JsonBoolean.valueOf(b);
+            else if(value instanceof Character c)
+                jv = JsonString.valueOf(c);
+            else if(value instanceof Collection<?> c)
+                jv = JsonArray.valueOf(c);
+            else if(value instanceof Map<?, ?> m)
+                jv = JsonObject.valueOf(m);
+            else if(value != null) {
+                jv = serializer.fromObject(value);
+            }
+
+            map.put(descriptor.getPropertyName(), jv);
         }
 
-        return map;
+        return new JsonObject(map);
     }
 
     @Override

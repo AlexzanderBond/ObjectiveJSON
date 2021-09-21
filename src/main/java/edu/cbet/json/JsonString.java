@@ -80,6 +80,17 @@ public class JsonString implements JsonValue {
     }
 
     @Override
+    public Number getAsNumber() {
+        if(isInteger()) {
+            return Long.parseLong(this.value);
+        } else if(isNumber()) {
+            return Double.parseDouble(this.value);
+        } else {
+            throw new IllegalStateException("JsonValue is of type '%s' not a number".formatted(getType()));
+        }
+    }
+
+    @Override
     public boolean isInteger() {
         if(mask == -1) {
             calculateMask();
@@ -168,5 +179,10 @@ public class JsonString implements JsonValue {
     @NotNull
     public static JsonString valueOf(@NotNull Object obj) {
         return new JsonString(obj);
+    }
+
+    @NotNull
+    public static JsonString valueOf(@NotNull Character c) {
+        return new JsonString(String.valueOf(c));
     }
 }

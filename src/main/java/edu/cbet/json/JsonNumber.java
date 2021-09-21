@@ -97,7 +97,7 @@ public class JsonNumber implements JsonValue{
     }
 
     @NotNull
-    public Number getNumber() {
+    public Number getAsNumber() {
         return this.value;
     }
 

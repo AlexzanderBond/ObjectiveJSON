@@ -175,7 +175,7 @@ public class JsonParser {
                 } else if (b != 0 && !Character.isWhitespace(b)) {
                     if (b == '\"') {
                         if (strLen != 0)
-                            throw new IllegalArgumentException("Non whitespace characters before String at index " + x + ", json preview " + getSurroundingSection(bytes, x));
+                            throw new IllegalArgumentException("Non whitespace character(s) before String at index " + x + ", json preview " + getSurroundingSection(bytes, x));
                         if (current.getRight() == null)
                             throw new IllegalArgumentException("Start of json should indicate an array or object, json preview '" + new String(bytes, 0, Math.min(10, bytes.length)) + '\'');
                         isInString = true;
