@@ -116,15 +116,20 @@ public class ObjectSerializer {
                     builder.append("\"NaN\"");
                 } else if(dValue.isInfinite()) {
                     builder.append('\"').append(dValue).append( '\"');
+                } else {
+                    builder.append(dValue);
                 }
             } else if(value instanceof Float fValue) {
                 if(fValue.isNaN()) {
                     builder.append("\"NaN\"");
                 } else if(fValue.isInfinite()) {
                     builder.append('\"').append(fValue).append( '\"');
+                } else {
+                    builder.append(fValue);
                 }
+            } else {
+                builder.append(value);
             }
-            builder.append(value);
         } else if(PRIMITIVE_QUOTES.contains(value.getClass())) {
             builder.append('\"').append(value).append('\"');
         } else if(value instanceof Enum<?> ev) {

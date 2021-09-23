@@ -84,7 +84,7 @@ public class JsonParser {
                         if (strLen == 0)
                             str = "";
                         else
-                            str = new String(textBuffer, 0, strLen);
+                            str = new String(textBuffer, 0, strLen, StandardCharsets.UTF_8);
                         if (current.getRight().isObject()) {
 
                             if (valueName == null) {

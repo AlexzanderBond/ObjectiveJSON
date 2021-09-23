@@ -60,6 +60,8 @@ public class JsonDescription<T> implements JsonSerializer<T> {
                 jv = JsonArray.valueOf(c);
             else if(value instanceof Map<?, ?> m)
                 jv = JsonObject.valueOf(m);
+            else if(value instanceof Enum<?> e)
+                jv = JsonString.valueOf(e.name());
             else if(value != null) {
                 jv = serializer.fromObject(value);
             }

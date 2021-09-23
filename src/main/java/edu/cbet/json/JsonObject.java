@@ -65,8 +65,8 @@ public class JsonObject extends HashMap<String, JsonValue> implements JsonValue 
     }
 
     @NotNull
-    public Object getNonNull(@NotNull String name) {
-        Object o = super.get(name);
+    public JsonValue getNonNull(@NotNull String name) {
+        JsonValue o = super.get(name);
 
         if(o == null)
             return JsonNull.NULL;
