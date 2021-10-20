@@ -64,6 +64,10 @@ public interface JsonValue {
         throw new IllegalStateException("JsonValue is of type '%s' not a float".formatted(getType()));
     }
 
+    default char getAsCharacter() {
+        throw new IllegalStateException("JsonValue is of type '%s' not a character".formatted(getType()));
+    }
+
     default Number getAsNumber() {
         throw new IllegalStateException("JsonValue is of type '%s' not a number".formatted(getType()));
     }
@@ -99,6 +103,8 @@ public interface JsonValue {
             return JsonString.valueOf(cs);
         } else if(o instanceof Map<?, ?> m) {
             return JsonObject.valueOf(m);
+        } else if(o instanceof Character c) {
+            return JsonNumber.valueOf((int) c);
         }
 
         throw new IllegalArgumentException("Couldn't provide a value for type " + o.getClass().getName());

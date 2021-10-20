@@ -96,6 +96,20 @@ public class JsonNumber implements JsonValue{
         return this.value.byteValue();
     }
 
+    @Override
+    public char getAsCharacter() {
+        if(!this.isInteger)
+            throw new IllegalStateException("JsonNumber is not a valid character");
+
+        int v = this.value.intValue();
+
+        if(v > Character.MAX_VALUE || v < 0) {
+            throw new IllegalStateException("JsonNumber is not a valid character");
+        }
+
+        return (char) v;
+    }
+
     @NotNull
     public Number getAsNumber() {
         return this.value;

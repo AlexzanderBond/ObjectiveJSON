@@ -91,6 +91,15 @@ public class JsonString implements JsonValue {
     }
 
     @Override
+    public char getAsCharacter() {
+        if(this.value.length() == 1) {
+            return this.value.charAt(0);
+        }
+
+        throw new IllegalArgumentException("JsonString is not a single character");
+    }
+
+    @Override
     public boolean isInteger() {
         if(mask == -1) {
             calculateMask();
