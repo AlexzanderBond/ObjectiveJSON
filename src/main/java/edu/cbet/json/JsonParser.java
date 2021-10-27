@@ -34,7 +34,7 @@ public class JsonParser {
     public JsonValue parseJson(String json) {
         try {
             return parse(new ByteContainer(json));
-        } catch (IOException ignored) { //This shouldn't every happen every, like literally ever, the moon will escape Earth's gravity and the sun will implode before a String throws an IOException
+        } catch (IOException ignored) { //This shouldn't ever happen, like literally ever, the moon will escape Earth's gravity and the sun will implode before a String throws an IOException
             return JsonNull.NULL;
         }
     }
@@ -109,6 +109,8 @@ public class JsonParser {
                                 _textChar((byte) '\r');
                             } else if(n == 'b') {
                                 _textChar((byte) '\b');
+                            } else if(n == 'f') {
+                                _textChar((byte) '\f');
                             } else if(n == '0') {
                                 _textChar((byte) '\0');
                             } else if(n == '\\') {
