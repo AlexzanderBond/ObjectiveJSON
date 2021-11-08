@@ -59,6 +59,11 @@ public class JsonParser {
         }
     }
 
+    public static JsonValue parse(File file) throws IOException {
+        JsonParser parser = new JsonParser();
+        return parser.parseJson(file);
+    }
+
     private JsonValue parse(ByteContainer container) throws IOException {
         byte[] bytes = container.getBytes();
         boolean isInString = false;
@@ -165,7 +170,8 @@ public class JsonParser {
                                         }
                                     }
                                 } catch (NumberFormatException e) {
-                                    throw new IllegalArgumentException("Invalid unicode escape sequence at index " + x + " (" + e.getMessage() + ")" + ", json preview " + getSurroundingSection(bytes, x));
+                                    throw new IllegalArgumentException("Invalid unicode escape " +
+                                            "sequence at index " + x + " (" + e.getMessage() + ")" + ", json preview '" + getSurroundingSection(bytes, x) + '\'');
                                 }
                             } else {
                                 throw new IllegalArgumentException("Invalid character was escaped at index " + (x+1) + ", json preview " + getSurroundingSection(bytes, x));
@@ -359,21 +365,11 @@ public class JsonParser {
     }
 
     private static String getSurroundingSection(byte[] buffer, int x) {
-        int len = x + 10;
+        int len = Math.min(10, buffer.length-x-1);
         int from = Math.max(x - 10, 0);
 
-        int total = from + len;
-
-        if(total > buffer.length) {
-            len = buffer.length - from;
-
-            if(len < 0) {
-                from = 0;
-                len = 0;
-            }
-        }
-
-        return new String(buffer, from, len).replaceAll("[\n\t\r\0]", "");
+        return new String(buffer, from, len).replaceAll("[\n\t\r\0]",
+                "");
     }
 
     private static class ByteContainer {
