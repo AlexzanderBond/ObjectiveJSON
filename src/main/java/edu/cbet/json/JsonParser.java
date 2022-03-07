@@ -347,6 +347,9 @@ public class JsonParser {
                 integer = false;
             } else if(b == '-' && !negative) {
                 negative = true;
+            } else if(b == 'e' && textBuffer[x+1] == '+' || textBuffer[x+1] == '-') {
+                x++;
+                integer = false;
             } else if(!Character.isDigit(b)) {
                 number = false;
                 integer = false;

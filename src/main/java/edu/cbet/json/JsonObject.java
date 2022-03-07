@@ -136,6 +136,11 @@ public class JsonObject extends HashMap<String, JsonValue> implements JsonValue 
         return super.put(Objects.requireNonNull(key), value==null?JsonNull.NULL:value);
     }
 
+    public boolean presentNotNull(String key) {
+        JsonValue value = get(key);
+        return value != null && !value.isNull();
+    }
+
     @Override
     public boolean isObject() {
         return true;
